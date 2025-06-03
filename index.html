@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <title>Draggable Canvas Text</title>
+  <style>
+    #canvas {
+      border: 1px solid #333;
+    }
+
+    #textInput {
+      position: absolute;
+      display: none;
+      z-index: 10;
+      font-size: 16px;
+    }
+  </style>
+</head>
+
+<body>
+  <canvas id="canvas" width="500" height="300"></canvas>
+  <input type="text" id="textInput" />
+  <script>
+    const canvas = document.getElementById("canvas");
+    const ctx = canvas.getContext("2d");
+    const input = document.getElementById("textInput");
+    const texts = [];
+    let draggingText = null;
+    let dragOffsetX = 0, dragOffsetY = 0;
+
+    function redraw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.font = "16px Arial";
+      ctx.fillStyle = "black";
+      texts.forEach(t => ctx.fillText(t.value, t.x, t.y));
+    }
+
+    // Show input box on canvas click (not on text)
+    canvas.addEventListener("click", function (e) {
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+
+      // Check if click is on existing text
+      let clickedText = texts.find(t => {
+        const width = ctx.measureText(t.value).width;
+        return x >= t.x && x <= t.x + width && y <= t.y && y >= t.y - 16;
+      });
+      if (clickedText) return; // Don't show input if clicking on text
+
+      input.style.left = (rect.left + x) + "px";
+      input.style.top = (rect.top + y) + "px";
+      input.style.display = "block";
+      input.value = "";
+      input.focus();
+      input.dataset.x = x;
+      input.dataset.y = y;
+    });
+
+    // Draw text on Enter
+    input.addEventListener("keydown", function (e) {
+      if (e.key === "Enter" && input.value.trim()) {
+        texts.push({
+          value: input.value,
+          x: parseInt(input.dataset.x),
+          y: parseInt(input.dataset.y)
+        });
+        input.style.display = "none";
+        redraw();
+      }
+    });
+
+    // Drag logic for drawn text
+    canvas.addEventListener("mousedown", function (e) {
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      ctx.font = "16px Arial";
+      for (let t of texts) {
+        const width = ctx.measureText(t.value).width;
+        if (x >= t.x && x <= t.x + width && y <= t.y && y >= t.y - 16) {
+          draggingText = t;
+          dragOffsetX = x - t.x;
+          dragOffsetY = y - t.y;
+          break;
+        }
+      }
+    });
+
+    canvas.addEventListener("mousemove", function (e) {
+      if (draggingText) {
+        const rect = canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        draggingText.x = x - dragOffsetX;
+        draggingText.y = y - dragOffsetY;
+        redraw();
+      }
+    });
+
+    canvas.addEventListener("mouseup", function () {
+      draggingText = null;
+    });
+
+    canvas.addEventListener("mouseleave", function () {
+      draggingText = null;
+    });
+  </script>
+</body>
+
+</html>
